@@ -134,15 +134,17 @@ enum action_kind_id {
  *     0x12       0x34            0x34       0x12
  */
 typedef union {
-    uint16_t code;
+    uint32_t code;
     struct action_kind {
         uint16_t param  :12;
         uint8_t  id     :4;
+        uint16_t other  :16;
     } kind;
     struct action_key {
         uint8_t  code   :8;
         uint8_t  mods   :4;
         uint8_t  kind   :4;
+        uint16_t other  :16;
     } key;
     struct action_layer_bitop {
         uint8_t  bits   :4;
@@ -151,32 +153,42 @@ typedef union {
         uint8_t  on     :2;
         uint8_t  op     :2;
         uint8_t  kind   :4;
+        uint16_t other  :16;
     } layer_bitop;
     struct action_layer_tap {
         uint8_t  code   :8;
         uint8_t  val    :5;
         uint8_t  kind   :3;
+        uint16_t other  :16;
     } layer_tap;
     struct action_usage {
         uint16_t code   :10;
         uint8_t  page   :2;
         uint8_t  kind   :4;
+        uint16_t other  :16;
     } usage;
     struct action_backlight {
         uint8_t  level  :8;
         uint8_t  opt    :4;
         uint8_t  kind   :4;
+        uint16_t other  :16;
     } backlight;
     struct action_command {
         uint8_t  id     :8;
         uint8_t  opt    :4;
         uint8_t  kind   :4;
+        uint16_t other  :16;
     } command;
     struct action_function {
         uint8_t  id     :8;
         uint8_t  opt    :4;
         uint8_t  kind   :4;
+        uint16_t other  :16;
     } func;
+    struct action_custom {
+        uint32_t id     :28;
+        uint8_t  kind   :4;
+    } custom;
 } action_t;
 
 

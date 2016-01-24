@@ -50,15 +50,15 @@ keymap_config_t keymap_config;
 
 
 /* translates key to keycode */
-uint16_t keymap_key_to_keycode(uint8_t layer, keypos_t key);
+uint32_t keymap_key_to_keycode(uint8_t layer, keypos_t key);
 
 /* translates Fn keycode to action */
-action_t keymap_fn_to_action(uint16_t keycode);
+action_t keymap_fn_to_action(uint32_t keycode);
 
 /* translates Fn keycode to action */
-action_t keymap_func_to_action(uint16_t keycode);
+action_t keymap_func_to_action(uint32_t keycode);
 
-extern const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS];
+extern const uint32_t keymaps[][MATRIX_ROWS][MATRIX_COLS];
 extern const uint16_t fn_actions[];
 
 // Ability to use mods in layouts
@@ -204,10 +204,9 @@ extern const uint16_t fn_actions[];
 // L-ayer, T-ap - 256 keycode max, 16 layer max
 #define LT(layer, kc) (kc | 0x8000 | ((layer & 0xF) << 8))
 
-// For sending unicode codes.
-// You may not send codes over 1FFF -- this supports most of UTF8.
+// For sending unicode characters.
 // To have a key that sends out Œ, go UC(0x0152)
-#define UNICODE(n) (n | 0x8000)
+#define UNICODE(n) (0x80000000 | n)
 #define UC(n) UNICODE(n)
 
 

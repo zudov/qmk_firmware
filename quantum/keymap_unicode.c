@@ -27,14 +27,14 @@ uint16_t hextokeycode(int hex) {
     }
 }
 
-void action_function(keyrecord_t *record, uint8_t id, uint8_t opt)
+void action_custom(keyrecord_t *record, uint32_t code)
 {
 
     // For more info on how this works per OS, see here: https://en.wikipedia.org/wiki/Unicode_input#Hexadecimal_code_input
 
     if (record->event.pressed) {
-        uint16_t unicode = (opt << 8) | id;
-        register_code(KC_LALT);
+        uint32_t unicode = code;
+        // register_code(KC_LALT);
 
         register_code(hextokeycode((unicode & 0xF000) >> 12));
         unregister_code(hextokeycode((unicode & 0xF000) >> 12));
@@ -55,7 +55,7 @@ void action_function(keyrecord_t *record, uint8_t id, uint8_t opt)
         // register_code(hextokeycode(0x1));
         // unregister_code(hextokeycode(0x1));
 
-        unregister_code(KC_LALT);
+        // unregister_code(KC_LALT);
     }
     return;
 }

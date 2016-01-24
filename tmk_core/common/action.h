@@ -57,6 +57,7 @@ const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt);
 
 /* user defined special function */
 void action_function(keyrecord_t *record, uint8_t id, uint8_t opt);
+void action_custom(keyrecord_t *record, uint32_t code);
 
 /* Utilities for actions.  */
 void process_action(keyrecord_t *record);

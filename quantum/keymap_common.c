@@ -26,14 +26,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "backlight.h"
 #include "keymap_midi.h"
 
-static action_t keycode_to_action(uint16_t keycode);
+static action_t keycode_to_action(uint32_t keycode);
 
 /* converts key to action */
 action_t action_for_key(uint8_t layer, keypos_t key)
 {
 	// 16bit keycodes - important
-    uint16_t keycode = keymap_key_to_keycode(layer, key);
-
+    uint32_t keycode = keymap_key_to_keycode(layer, key);
+    dprintln();
+    dprintf("keycode: %16X", keycode);
+    dprintln();
     if (keycode >= 0x0100 && keycode < 0x2000) {
     	// Has a modifier
     	action_t action;
@@ -126,10 +128,10 @@ action_t action_for_key(uint8_t layer, keypos_t key)
         action.code = ACTION_LAYER_TAP_KEY((keycode >> 0x8) & 0xF, keycode & 0xFF);
         return action;
 #ifdef UNICODE_ENABLE
-    } else if (keycode >= 0x8000000) {
+    } else if (keycode >= 0x9000) {
         action_t action;
-        uint16_t unicode = keycode & ~(0x8000);
-        action.code =  ACTION_FUNCTION_OPT(unicode & 0xFF, (unicode & 0xFF00) >> 8);
+        action.code = keycode;
+        action.custom.kind = 0x8;
         return action;
 #endif
     } else {
@@ -224,7 +226,7 @@ void action_function(keyrecord_t *record, uint8_t id, uint8_t opt)
 }
 
 /* translates keycode to action */
-static action_t keycode_to_action(uint16_t keycode)
+static action_t keycode_to_action(uint32_t keycode)
 {
     action_t action;
     switch (keycode) {
@@ -253,19 +255,19 @@ static action_t keycode_to_action(uint16_t keycode)
 
 
 /* translates key to keycode */
-uint16_t keymap_key_to_keycode(uint8_t layer, keypos_t key)
+uint32_t keymap_key_to_keycode(uint8_t layer, keypos_t key)
 {
-	// Read entire word (16bits)
-    return pgm_read_word(&keymaps[(layer)][(key.row)][(key.col)]);
+	// Read dword (32bits)
+    return pgm_read_dword(&keymaps[(layer)][(key.row)][(key.col)]);
 }
 
 /* translates Fn keycode to action */
-action_t keymap_fn_to_action(uint16_t keycode)
+action_t keymap_fn_to_action(uint32_t keycode)
 {
     return (action_t){ .code = pgm_read_word(&fn_actions[FN_INDEX(keycode)]) };
 }
 
-action_t keymap_func_to_action(uint16_t keycode)
+action_t keymap_func_to_action(uint32_t keycode)
 {
 	// For FUNC without 8bit limit
     return (action_t){ .code = pgm_read_word(&fn_actions[(int)keycode]) };

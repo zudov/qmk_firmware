@@ -70,6 +70,12 @@ void process_action(keyrecord_t *record)
 #endif
     dprintln();
 
+    // if (action.code >= 0x80000000) {
+    //     action_custom(record, action.custom.id);
+    //     return;
+    // }
+    dprintf("%X", action.custom.kind);
+
     switch (action.kind.id) {
         /* Key and Mods */
         case ACT_LMODS:
@@ -337,6 +343,7 @@ void process_action(keyrecord_t *record)
         default:
             break;
     }
+
 }
 
 

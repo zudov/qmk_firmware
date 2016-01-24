@@ -5,11 +5,12 @@
   #include "backlight.h"
 #endif
 #include "action_layer.h"
-#include "keymap_midi.h"
+// #include "keymap_midi.h"
 #include "audio.h"
 #include <avr/boot.h>
+#include <debug.h>
 
-const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
+const uint32_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 [0] = { /* Qwerty */
   {KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,   KC_BSPC},
   {KC_ESC,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN,  KC_QUOT},
@@ -25,27 +26,15 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 },
 [2] = { /* RAISE */
   {KC_GRV,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_BSPC},
-  {KC_TRNS, FUNC(3), FUNC(4), RESET, KC_TRNS, KC_TRNS, KC_TRNS, KC_MINS, KC_EQL,  KC_LBRC, KC_RBRC, KC_BSLS},
+  {KC_TRNS, FUNC(3), FUNC(4), RESET, UC(0x1028), KC_TRNS, KC_TRNS, KC_MINS, KC_EQL,  KC_LBRC, KC_RBRC, KC_BSLS},
   {KC_TRNS, KC_F11,  KC_F12,  KC_TRNS,   KC_TRNS,   KC_TRNS,   KC_TRNS,   KC_TRNS,   KC_TRNS,   KC_TRNS,   KC_TRNS, KC_TRNS},
   {KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,    KC_TRNS,   KC_TRNS,  FUNC(1),   KC_MNXT, KC_VOLD, KC_VOLU, KC_MPLY}
 },
 [3] = { /* LOWER */
   {S(KC_GRV),  S(KC_1),    S(KC_2),    S(KC_3),    S(KC_4),    S(KC_5),    S(KC_6),    S(KC_7),    S(KC_8),    S(KC_9),    S(KC_0), KC_BSPC},
-  {KC_TRNS, FUNC(3), FUNC(4), RESET, KC_TRNS, KC_TRNS, KC_TRNS, S(KC_MINS), S(KC_EQL),  S(KC_LBRC), S(KC_RBRC), S(KC_BSLS)},
+  {KC_TRNS, FUNC(3), FUNC(4), RESET, UC(0x1028), KC_TRNS, KC_TRNS, S(KC_MINS), S(KC_EQL),  S(KC_LBRC), S(KC_RBRC), S(KC_BSLS)},
   {KC_TRNS, KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_TRNS},
   {KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, FUNC(2),   KC_TRNS,   KC_TRNS,   KC_TRNS, KC_MNXT, KC_VOLD, KC_VOLU, KC_MPLY}
-},
-[4] = { /* TENKEY */
-  {KC_TAB,  N_C5, N_D5, N_E5, N_F5, N_G5, N_A5,    KC_KP_7,    KC_KP_8,    KC_KP_9,    KC_P,   KC_BSPC},
-  {KC_ESC,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_KP_4,    KC_KP_5,    KC_KP_6,    KC_SCLN,  KC_QUOT},
-  {KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_KP_1,    KC_KP_2,    KC_KP_3,  KC_SLSH, KC_ENT},
-  {KC_TRNS, KC_LCTL, KC_LALT, KC_LGUI, KC_TRNS,    KC_SPC,   KC_SPC, KC_KP_0,   KC_LEFT, KC_DOWN, KC_UP,  KC_RGHT}
-},
-[5] = {
-  { MIDI12 },
-  { MIDI12 },
-  { MIDI12 },
-  {M(0), KC_MS_L, KC_MS_D, KC_MS_U, KC_MS_R,    KC_SPC,   KC_SPC,    FUNC(1),   MIDI, MIDI, MIDI,  MIDI}
 }
 };
 
@@ -58,15 +47,15 @@ const uint16_t PROGMEM fn_actions[] = {
 
 };
 
-uint16_t hextokeycode(int hex) {
-    if (hex == 0x0) {
-        return KC_0;
-    } else if (hex < 0xA) {
-        return KC_1 + (hex - 0x1);
-    } else {
-        return KC_A + (hex - 0xA);
-    }
-}
+// uint16_t hextokeycode(int hex) {
+//     if (hex == 0x0) {
+//         return KC_0;
+//     } else if (hex < 0xA) {
+//         return KC_1 + (hex - 0x1);
+//     } else {
+//         return KC_A + (hex - 0xA);
+//     }
+// }
 
 float walk_up[][2] = {
   {440.0*pow(2.0,(60)/12.0), 400},
@@ -93,8 +82,9 @@ const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt)
           #ifdef BACKLIGHT_ENABLE
             backlight_set(BACKLIGHT_LEVELS);
           #endif
-          default_layer_and(0); 
-          default_layer_or((1<<5));
+            debug_enable = true;
+          // default_layer_and(0); 
+          // default_layer_or((1<<1));
 
           // uint8_t low = boot_lock_fuse_bits_get(0x0000);
           // uint8_t high = boot_lock_fuse_bits_get(0x0003);
@@ -125,13 +115,14 @@ const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt)
           // unregister_code(hextokeycode((lock & 0x0F)));
 
         } else {
-          unregister_code(KC_RSFT);
+          debug_enable = false;
           play_notes(&walk_dn, 3, false);
+          // unregister_code(KC_RSFT);
           #ifdef BACKLIGHT_ENABLE
             backlight_set(0);
           #endif
-          default_layer_and(0); 
-          default_layer_or(0);
+          // default_layer_and(0); 
+          // default_layer_or(0);
         }
         break;
       } 
