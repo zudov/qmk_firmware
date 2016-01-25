@@ -39,20 +39,36 @@ void action_custom(keyrecord_t *record, uint32_t code)
             register_code(KC_LALT);
         #endif
 
-        uint32_t unicode = code;
-        bool leading_zero = false;
-        for(int i = 6; i >= 0; i--) {
-            uint8_t digit = ((unicode >> (int)(i*4)) & 0xF);
-            if (digit > 0 || leading_zero || (i < 4)) {
-                leading_zero = true;
+        if (code <= 0xFFFF) {
+            uint16_t unicode = (code & 0xFFFF);
+            for(int i = 3; i >= 0; i--) {
+                uint8_t digit = ((unicode >> (i*4)) & 0xF);
                 register_code(hextokeycode(digit));
                 unregister_code(hextokeycode(digit));
-                if (i == 4) {
-                    register_code(KC_LSFT);
-                    register_code(KC_EQL);
-                    unregister_code(KC_EQL);
-                    unregister_code(KC_LSFT);
-                }
+            }
+        } else {
+            code = (code - 0x10000);
+            uint16_t high_uc = (0xD800 | (code >> 10));
+            uint16_t low_uc = (0xDC00 | (code & 0x3FF));
+            for(int i = 3; i >= 0; i--) {
+                uint8_t digit = ((high_uc >> (i*4)) & 0xF);
+                register_code(hextokeycode(digit));
+                unregister_code(hextokeycode(digit));
+            }
+
+        // #ifdef UNICODE_OSX
+        //     unregister_code(KC_LALT);
+        //     register_code(KC_LALT);
+        // #endif
+
+            register_code(KC_LSFT);
+            register_code(KC_EQL);
+            unregister_code(KC_EQL);
+            unregister_code(KC_LSFT);
+            for(int i = 3; i >= 0; i--) {
+                uint8_t digit = ((low_uc >> (i*4)) & 0xF);
+                register_code(hextokeycode(digit));
+                unregister_code(hextokeycode(digit));
             }
         }
 
