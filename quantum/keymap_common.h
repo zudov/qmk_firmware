@@ -62,18 +62,18 @@ extern const uint32_t keymaps[][MATRIX_ROWS][MATRIX_COLS];
 extern const uint16_t fn_actions[];
 
 // Ability to use mods in layouts
-#define LCTL(kc) kc | 0x0100
-#define LSFT(kc) kc | 0x0200
-#define LALT(kc) kc | 0x0400
-#define LGUI(kc) kc | 0x0800
-#define HYPR(kc) kc | 0x0F00
-#define MEH(kc) kc  | 0x0700
-#define LCAG(kc) kc  | 0x0D00 // Modifier Ctrl Alt and GUI
+#define LCTL(kc) (kc | 0x0100)
+#define LSFT(kc) (kc | 0x0200)
+#define LALT(kc) (kc | 0x0400)
+#define LGUI(kc) (kc | 0x0800)
+#define HYPR(kc) (kc | 0x0F00)
+#define MEH(kc)  (kc | 0x0700)
+#define LCAG(kc) (kc | 0x0D00) // Modifier Ctrl Alt and GUI
 
-#define RCTL(kc) kc | 0x1100
-#define RSFT(kc) kc | 0x1200
-#define RALT(kc) kc | 0x1400
-#define RGUI(kc) kc | 0x1800
+#define RCTL(kc) (kc | 0x1100)
+#define RSFT(kc) (kc | 0x1200)
+#define RALT(kc) (kc | 0x1400)
+#define RGUI(kc) (kc | 0x1800)
 
 // Aliases for shifted symbols
 // Each key has a 4-letter code, and some have longer aliases too.
@@ -129,13 +129,13 @@ extern const uint16_t fn_actions[];
 #define KC_DELT KC_DELETE // Del key (four letter code)
 
 // Alias for function layers than expand past FN31
-#define FUNC(kc) kc | 0x2000
+#define FUNC(kc) (kc | 0x2000)
 
 // Aliases
 #define S(kc) LSFT(kc)
 #define F(kc) FUNC(kc)
 
-#define M(kc) kc | 0x3000
+#define M(kc) (kc | 0x00003000)
 
 #define MACRODOWN(...) (record->event.pressed ? MACRO(__VA_ARGS__) : MACRO_NONE)
 

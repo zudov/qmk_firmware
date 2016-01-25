@@ -25,17 +25,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "debug.h"
 #include "backlight.h"
 #include "keymap_midi.h"
+#include <stdio.h>
+#include <inttypes.h>
+#ifdef AUDIO_ENABLE
+    #include "audio.h"
+
+    float goodbye[][2] = {
+      {440.0*pow(2.0,(67)/12.0), 400},
+      {0, 50},
+      {440.0*pow(2.0,(60)/12.0), 400},
+      {0, 50},
+      {440.0*pow(2.0,(55)/12.0), 600},
+    };
+#endif
 
 static action_t keycode_to_action(uint32_t keycode);
 
 /* converts key to action */
 action_t action_for_key(uint8_t layer, keypos_t key)
 {
-	// 16bit keycodes - important
+	// 32bit keycodes - important
     uint32_t keycode = keymap_key_to_keycode(layer, key);
-    dprintln();
-    dprintf("keycode: %16X", keycode);
-    dprintln();
+
     if (keycode >= 0x0100 && keycode < 0x2000) {
     	// Has a modifier
     	action_t action;
@@ -49,7 +60,7 @@ action_t action_for_key(uint8_t layer, keypos_t key)
 	} else if (keycode >= 0x3000 && keycode < 0x4000) {
       // When the code starts with 3, it's an action macro.
     	action_t action;
-    	action.code = ACTION_MACRO(keycode & 0xFF);
+    	action.code = (0xC000 | (keycode & 0xFF));
     	return action;
 #ifdef BACKLIGHT_ENABLE
 	} else if (keycode >= BL_0 & keycode <= BL_15) {
@@ -73,13 +84,15 @@ action_t action_for_key(uint8_t layer, keypos_t key)
         action.code = ACTION_BACKLIGHT_STEP();
         return action;
 #endif
-    } else if (keycode == RESET) { // RESET is 0x5000, which is why this is here
+    } else if (keycode == RESET) { // RESET is 0x5000
         clear_keyboard();
+        #ifdef AUDIO_ENABLE
+            play_notes(&goodbye, 5, false);
+        #endif
         _delay_ms(250);
         bootloader_jump();
         return;
     } else if (keycode == DEBUG) { // DEBUG is 0x5001
-      // TODO: Does this actually work?
         print("\nDEBUG: enabled.\n");
         debug_enable = true;
         return;
@@ -128,10 +141,9 @@ action_t action_for_key(uint8_t layer, keypos_t key)
         action.code = ACTION_LAYER_TAP_KEY((keycode >> 0x8) & 0xF, keycode & 0xFF);
         return action;
 #ifdef UNICODE_ENABLE
-    } else if (keycode >= 0x9000) {
+    } else if (keycode >= 0x0000FFFF) {
         action_t action;
         action.code = keycode;
-        action.custom.kind = 0x8;
         return action;
 #endif
     } else {

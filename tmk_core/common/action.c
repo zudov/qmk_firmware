@@ -70,11 +70,11 @@ void process_action(keyrecord_t *record)
 #endif
     dprintln();
 
-    // if (action.code >= 0x80000000) {
-    //     action_custom(record, action.custom.id);
-    //     return;
-    // }
-    dprintf("%X", action.custom.kind);
+    // 28bit custom action
+    if (action.custom.kind == 0x8) {
+        action_custom(record, action.custom.id);
+        return;
+    }
 
     switch (action.kind.id) {
         /* Key and Mods */

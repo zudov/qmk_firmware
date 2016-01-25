@@ -16,6 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "keymap_common.h"
+#include <math.h>
+
+#define UNICODE_OSX /* Mac with Unicode Hex Input */
 
 uint16_t hextokeycode(int hex) {
     if (hex == 0x0) {
@@ -29,33 +32,33 @@ uint16_t hextokeycode(int hex) {
 
 void action_custom(keyrecord_t *record, uint32_t code)
 {
-
     // For more info on how this works per OS, see here: https://en.wikipedia.org/wiki/Unicode_input#Hexadecimal_code_input
 
     if (record->event.pressed) {
+        #ifdef UNICODE_OSX
+            register_code(KC_LALT);
+        #endif
+
         uint32_t unicode = code;
-        // register_code(KC_LALT);
+        bool leading_zero = false;
+        for(int i = 6; i >= 0; i--) {
+            uint8_t digit = ((unicode >> (int)(i*4)) & 0xF);
+            if (digit > 0 || leading_zero || (i < 4)) {
+                leading_zero = true;
+                register_code(hextokeycode(digit));
+                unregister_code(hextokeycode(digit));
+                if (i == 4) {
+                    register_code(KC_LSFT);
+                    register_code(KC_EQL);
+                    unregister_code(KC_EQL);
+                    unregister_code(KC_LSFT);
+                }
+            }
+        }
 
-        register_code(hextokeycode((unicode & 0xF000) >> 12));
-        unregister_code(hextokeycode((unicode & 0xF000) >> 12));
-        register_code(hextokeycode((unicode & 0x0F00) >> 8));
-        unregister_code(hextokeycode((unicode & 0x0F00) >> 8));
-        register_code(hextokeycode((unicode & 0x00F0) >> 4));
-        unregister_code(hextokeycode((unicode & 0x00F0) >> 4));
-        register_code(hextokeycode((unicode & 0x000F)));
-        unregister_code(hextokeycode((unicode & 0x000F)));
-        
-        /* Test 'a' */
-        // register_code(hextokeycode(0x0));
-        // unregister_code(hextokeycode(0x0));
-        // register_code(hextokeycode(0x0));
-        // unregister_code(hextokeycode(0x0));
-        // register_code(hextokeycode(0x6));
-        // unregister_code(hextokeycode(0x6));
-        // register_code(hextokeycode(0x1));
-        // unregister_code(hextokeycode(0x1));
-
-        // unregister_code(KC_LALT);
+        #ifdef UNICODE_OSX
+            unregister_code(KC_LALT);
+        #endif
     }
     return;
 }
