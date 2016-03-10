@@ -40,6 +40,7 @@ endif
 
 # Search Path
 VPATH += $(TOP_DIR)/$(QUANTUM_DIR)
+VPATH += $(TOP_DIR)/$(QUANTUM_DIR)/keymap_extras
 
 include $(TMK_DIR)/protocol/lufa.mk
 
