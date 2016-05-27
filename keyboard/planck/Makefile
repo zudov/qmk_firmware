@@ -55,32 +55,22 @@ ifdef keymap
 	KEYMAP = $(keymap)
 endif
 
-ifdef KEYMAP
+ifndef KEYMAP
+	KEYMAP = default
+endif
+
 ifneq ("$(wildcard keymaps/$(KEYMAP).c)","")
 	KEYMAP_FILE = keymaps/$(KEYMAP).c
 else
 ifneq ("$(wildcard keymaps/$(KEYMAP)/keymap.c)","")
 	KEYMAP_FILE = keymaps/$(KEYMAP)/keymap.c
+	VPATH += keymaps/$(KEYMAP)
 ifneq ("$(wildcard keymaps/$(KEYMAP)/makefile.mk)","")
 	include keymaps/$(KEYMAP)/makefile.mk
 endif
 else
 $(error Keymap file does not exist)
 endif 
-endif
-
-else
-
-ifneq ("$(wildcard keymaps/default.c)","")
-	KEYMAP_FILE = keymaps/default.c
-else
-	KEYMAP_FILE = keymaps/default/keymap.c
-endif
-
-ifneq ("$(wildcard keymaps/default/makefile.mk)","")
-	include keymaps/default/makefile.mk
-endif
-
 endif
 
 SRC := $(KEYMAP_FILE) $(SRC)
@@ -133,7 +123,7 @@ OPT_DEFS += -DINTERRUPT_CONTROL_ENDPOINT
 #   Atmel DFU loader 4096
 #   LUFA bootloader  4096
 #   USBaspLoader     2048
-OPT_DEFS += -DBOOTLOADER_SIZE=4096
+BOOTLOADER_SIZE=4096
 
 # Build Options
 #   change to "no" to disable the options, or define them in the makefile.mk in 
@@ -155,6 +145,10 @@ RGBLIGHT_ENABLE = no        # Enable WS2812 RGB underlight.  Do not enable this 
 # Do not enable SLEEP_LED_ENABLE. it uses the same timer as BACKLIGHT_ENABLE
 SLEEP_LED_ENABLE = no    # Breathing sleep LED during USB suspend
 
+ifneq ("$(wildcard keymaps/$(KEYMAP)/config_user.h)","")
+	CONFIG_H = keymaps/$(KEYMAP)/config_user.h
+endif
+
 ifdef KEYMAP
 
 ifeq ("$(wildcard keymaps/$(KEYMAP).c)","")
@@ -170,6 +164,9 @@ ifneq ("$(wildcard keymaps/default/makefile.mk)","")
 endif
 
 endif
+
+
+OPT_DEFS += -DBOOTLOADER_SIZE=$(BOOTLOADER_SIZE)
 
 # Optimize size but this may cause error "relocation truncated to fit"
 #EXTRALDFLAGS = -Wl,--relax

@@ -1,0 +1,10 @@
+AUDIO_ENABLE = yes
+NKRO_ENABLE = yes
+MIDI_ENABLE = yes
+BACKLIGHT_ENABLE = no
+
+MCU = at90usb1286
+
+BOOTLOADER_SIZE=1024
+
+SRC += twimaster.c mcp4725.c
