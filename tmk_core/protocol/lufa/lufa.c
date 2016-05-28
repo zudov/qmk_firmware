@@ -52,9 +52,9 @@
 #include "descriptor.h"
 #include "lufa.h"
 
-#ifdef AUDIO_ENABLE
+// #ifdef AUDIO_ENABLE
     #include <audio.h>
-#endif
+// #endif
 
 #ifdef BLUETOOTH_ENABLE
     #include "bluetooth.h"
@@ -943,7 +943,7 @@ int main(void)
 void fallthrough_callback(MidiDevice * device,
     uint16_t cnt, uint8_t byte0, uint8_t byte1, uint8_t byte2){
 
-#ifdef AUDIO_ENABLE
+// #ifdef AUDIO_ENABLE
   if (cnt == 3) {
     switch (byte0 & 0xF0) {
         case MIDI_NOTEON:
@@ -957,7 +957,7 @@ void fallthrough_callback(MidiDevice * device,
   if (byte0 == MIDI_STOP) {
     stop_all_notes();
   }
-#endif
+// #endif
 }
 
 void cc_callback(MidiDevice * device,

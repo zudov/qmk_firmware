@@ -7,7 +7,7 @@
   #include "audio.h"
 #endif
 #include "eeconfig.h"
-#include "mcp4725.h"
+#include "mcp4921.h"
 
 extern keymap_config_t keymap_config;
 
@@ -283,16 +283,6 @@ const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt)
     return MACRO_NONE;
 };
 
-void matrix_init_user(void) {
-    #ifdef AUDIO_ENABLE
-        startup_user();
-    #endif
-  DDRD |= (1<<6);
-  PORTD |= (1<<6);
-
-  mcp4725_status = init_mcp4725();
-}
-
 int lookup = 0;//varaible for navigating through the tables
 
 const PROGMEM uint16_t DACLookup_FullSine_8Bit[256] =
@@ -331,11 +321,22 @@ const PROGMEM uint16_t DACLookup_FullSine_8Bit[256] =
   1648, 1697, 1747, 1797, 1847, 1897, 1947, 1997
 };
 
+void matrix_init_user(void) {
+    #ifdef AUDIO_ENABLE
+        startup_user();
+    #endif
+  DDRD |= (1<<6);
+  PORTD |= (1<<6);
+
+  setupSPI(SPI_MODE_0, SPI_MSB, SPI_NO_INTERRUPT, SPI_MASTER_CLK2);
+  SETUP_DAC;
+}
+
 void matrix_scan_user(void) {
-  while(true) {
-    mcp4725_send_12bits(pgm_read_word(&(DACLookup_FullSine_8Bit[lookup])));
-    lookup = (lookup + 100) & 255;
-  }
+  // while(true) {
+    // writeMCP492x(pgm_read_word(&(DACLookup_FullSine_8Bit[lookup])), 0b00110000);
+    // lookup = (lookup + 2) & 255;
+  // }
 }
 
 #ifdef AUDIO_ENABLE

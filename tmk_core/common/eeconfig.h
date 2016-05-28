@@ -73,9 +73,9 @@ uint8_t eeconfig_read_backlight(void);
 void eeconfig_update_backlight(uint8_t val);
 #endif
 
-#ifdef AUDIO_ENABLE
+// #ifdef AUDIO_ENABLE
 uint8_t eeconfig_read_audio(void);
 void eeconfig_update_audio(uint8_t val);
-#endif
+// #endif
 
 #endif

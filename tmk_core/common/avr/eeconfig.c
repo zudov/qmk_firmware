@@ -13,9 +13,9 @@ void eeconfig_init(void)
 #ifdef BACKLIGHT_ENABLE
     eeprom_update_byte(EECONFIG_BACKLIGHT,      0);
 #endif
-#ifdef AUDIO_ENABLE
+// #ifdef AUDIO_ENABLE
     eeprom_update_byte(EECONFIG_AUDIO,      	   0xFF); // On by default
-#endif
+// #endif
 }
 
 void eeconfig_enable(void)
@@ -47,7 +47,7 @@ uint8_t eeconfig_read_backlight(void)      { return eeprom_read_byte(EECONFIG_BA
 void eeconfig_update_backlight(uint8_t val) { eeprom_update_byte(EECONFIG_BACKLIGHT, val); }
 #endif
 
-#ifdef AUDIO_ENABLE
+// #ifdef AUDIO_ENABLE
 uint8_t eeconfig_read_audio(void)      { return eeprom_read_byte(EECONFIG_AUDIO); }
 void eeconfig_update_audio(uint8_t val) { eeprom_update_byte(EECONFIG_AUDIO, val); }
-#endif
+// #endif

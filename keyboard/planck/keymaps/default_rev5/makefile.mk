@@ -1,4 +1,4 @@
-AUDIO_ENABLE = yes
+AUDIO_ENABLE = no
 NKRO_ENABLE = yes
 MIDI_ENABLE = yes
 BACKLIGHT_ENABLE = no
@@ -7,4 +7,4 @@ MCU = at90usb1286
 
 BOOTLOADER_SIZE=1024
 
-SRC += twimaster.c mcp4725.c
+SRC += mcp4921.c audio_pwm.c

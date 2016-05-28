@@ -10,6 +10,8 @@
 
 #include "eeconfig.h"
 
+#include "mcp4921.h"
+
 #define PI 3.14159265
 
 #define CPU_PRESCALER 8
@@ -32,17 +34,14 @@
 #define NOTE_PERIOD ICR3
 #define NOTE_DUTY_CYCLE OCR3A
 
+#include "wave.h"
+#define SAMPLE_DIVIDER (9)
+#define SAMPLE_RATE (1000.0/SAMPLE_DIVIDER/8)
+// Resistor value of 1/ (2 * PI * 10nF * (2000000 hertz / SAMPLE_DIVIDER / 10)) for 10nF cap
 
-#ifdef PWM_AUDIO
-    #include "wave.h"
-    #define SAMPLE_DIVIDER 39
-    #define SAMPLE_RATE (2000000.0/SAMPLE_DIVIDER/2048)
-    // Resistor value of 1/ (2 * PI * 10nF * (2000000 hertz / SAMPLE_DIVIDER / 10)) for 10nF cap
-
-    float places[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-    uint16_t place_int = 0;
-    bool repeat = true;
-#endif
+float places[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+uint16_t place_int = 0;
+bool repeat = true;
 
 void delay_us(int count) {
   while(count--) {
@@ -105,44 +104,28 @@ void audio_init() {
     }
     audio_config.raw = eeconfig_read_audio();
 
-    #ifdef PWM_AUDIO
+    // PLLFRQ = _BV(PDIV2);
+    // PLLCSR = _BV(PLLE);
+    // while(!(PLLCSR & _BV(PLOCK)));
+    // PLLFRQ |= _BV(PLLTM0); /* PCK 48MHz */
 
-        PLLFRQ = _BV(PDIV2);
-        PLLCSR = _BV(PLLE);
-        while(!(PLLCSR & _BV(PLOCK)));
-        PLLFRQ |= _BV(PLLTM0); /* PCK 48MHz */
+    // /* Init a fast PWM on Timer4 */
+    // TCCR4A = _BV(COM4A0) | _BV(PWM4A); /* Clear OC4A on Compare Match */
+    // TCCR4B = _BV(CS40); /* No prescaling => f = PCK/256 = 187500Hz */
+    // OCR4A = 0;
 
-        /* Init a fast PWM on Timer4 */
-        TCCR4A = _BV(COM4A0) | _BV(PWM4A); /* Clear OC4A on Compare Match */
-        TCCR4B = _BV(CS40); /* No prescaling => f = PCK/256 = 187500Hz */
-        OCR4A = 0;
+    // /* Enable the OC4A output */
+    // DDRC |= _BV(PORTC6);
 
-        /* Enable the OC4A output */
-        DDRC |= _BV(PORTC6);
+    DISABLE_AUDIO_COUNTER_3_ISR; // Turn off 3A interputs
 
-        DISABLE_AUDIO_COUNTER_3_ISR; // Turn off 3A interputs
-
-        TCCR3A = 0x0; // Options not needed
-        TCCR3B = _BV(CS31) | _BV(CS30) | _BV(WGM32); // 64th prescaling and CTC
-        OCR3A = SAMPLE_DIVIDER - 1; // Correct count/compare, related to sample playback
-
-    #else
-
-    	// Set port PC6 (OC3A and /OC4A) as output
-        DDRC |= _BV(PORTC6);
-
-        DISABLE_AUDIO_COUNTER_3_ISR;
-
-		// TCCR3A / TCCR3B: Timer/Counter #3 Control Registers
-		// Compare Output Mode (COM3An) = 0b00 = Normal port operation, OC3A disconnected from PC6
-		// Waveform Generation Mode (WGM3n) = 0b1110 = Fast PWM Mode 14 (Period = ICR3, Duty Cycle = OCR3A)
-		// Clock Select (CS3n) = 0b010 = Clock / 8
-        TCCR3A = (0 << COM3A1) | (0 << COM3A0) | (1 << WGM31) | (0 << WGM30);
-        TCCR3B = (1 << WGM33)  | (1 << WGM32)  | (0 << CS32)  | (1 << CS31) | (0 << CS30);
-
-    #endif
+    TCCR3A = 0x0; // Options not needed
+    TCCR3B = _BV(CS31) | _BV(CS30) | _BV(WGM32); // 64th prescaling and CTC
+    OCR3A = SAMPLE_DIVIDER - 1; // Correct count/compare, related to sample playback
 
     audio_initialized = true;
+
+    writeMCP492x(0x7FF, 0b01110000);
 }
 
 void stop_all_notes() {
@@ -150,12 +133,8 @@ void stop_all_notes() {
         audio_init();
     }
     voices = 0;
-    #ifdef PWM_AUDIO
-	    DISABLE_AUDIO_COUNTER_3_ISR;
-    #else
-        DISABLE_AUDIO_COUNTER_3_ISR;
-        DISABLE_AUDIO_COUNTER_3_OUTPUT;
-    #endif
+	DISABLE_AUDIO_COUNTER_3_ISR;
+    writeMCP492x(0x7FF, 0b01110000);
 
     playing_notes = false;
     playing_note = false;
@@ -166,6 +145,7 @@ void stop_all_notes() {
     {
         frequencies[i] = 0;
         volumes[i] = 0;
+        places[i] = 0;
     }
 }
 
@@ -175,18 +155,19 @@ void stop_note(float freq)
         if (!audio_initialized) {
             audio_init();
         }
-        #ifdef PWM_AUDIO
-            freq = freq / SAMPLE_RATE;
-        #endif
+        freq = freq / SAMPLE_RATE;
         for (int i = 7; i >= 0; i--) {
             if (frequencies[i] == freq) {
                 frequencies[i] = 0;
                 volumes[i] = 0;
+                places[i] = 0;
                 for (int j = i; (j < 7); j++) {
                     frequencies[j] = frequencies[j+1];
                     frequencies[j+1] = 0;
                     volumes[j] = volumes[j+1];
                     volumes[j+1] = 0;
+                    places[j] = places[j+1];
+                    places[j+1] = 0;
                 }
                 break;
             }
@@ -198,12 +179,8 @@ void stop_note(float freq)
             voice_place = 0;
         }
         if (voices == 0) {
-            #ifdef PWM_AUDIO
-                DISABLE_AUDIO_COUNTER_3_ISR;
-            #else
-                DISABLE_AUDIO_COUNTER_3_ISR;
-                DISABLE_AUDIO_COUNTER_3_OUTPUT;
-            #endif
+            DISABLE_AUDIO_COUNTER_3_ISR;
+            writeMCP492x(0x7FF, 0b01110000);
             frequency = 0;
             volume = 0;
             playing_note = false;
@@ -234,105 +211,53 @@ float vibrato(float average_freq) {
 ISR(TIMER3_COMPA_vect)
 {
     if (playing_note) {
-        #ifdef PWM_AUDIO
+            uint16_t sum = 0;
             if (voices == 1) {
                 // SINE
-                OCR4A = pgm_read_byte(&sinewave[(uint16_t)place]) >> 2;
+                // sum = pgm_read_word(&sinewave[(uint16_t)places[voices - 1]]) >> 2;
 
                 // SQUARE
-                // if (((int)place) >= 1024){
-                //     OCR4A = 0xFF >> 2;
-                // } else {
-                //     OCR4A = 0x00;
-                // }
+                if (((int)places[voices - 1]) >= (SINE_LENGTH/2)){
+                    sum = 0xFFF;
+                } else {
+                    sum = 0x00;
+                }
 
                 // SAWTOOTH
-                // OCR4A = (int)place / 4;
+                // sum = (int)places[voices - 1] / 4;
 
                 // TRIANGLE
-                // if (((int)place) >= 1024) {
-                //     OCR4A = (int)place / 2;
+                // if (((int)places[voices - 1]) >= (SINE_LENGTH/2)) {
+                //     sum = (int)places[voices - 1] / 2;
                 // } else {
-                //     OCR4A = 2048 - (int)place / 2;
+                //     sum = 2048 - (int)places[voices - 1] / 2;
                 // }
 
-                place += frequency;
+                places[voices - 1] += frequencies[voices - 1];
 
-                if (place >= SINE_LENGTH)
-                    place -= SINE_LENGTH;
+                while(places[voices - 1] >= SINE_LENGTH)
+                    places[voices - 1] -= SINE_LENGTH;
 
             } else {
-                int sum = 0;
                 for (int i = 0; i < voices; i++) {
                     // SINE
-                    sum += pgm_read_byte(&sinewave[(uint16_t)places[i]]) >> 2;
+                    // sum += pgm_read_word(&sinewave[(uint16_t)places[i]]) >> 2;
 
                     // SQUARE
-                    // if (((int)places[i]) >= 1024){
-                    //     sum += 0xFF >> 2;
-                    // } else {
-                    //     sum += 0x00;
-                    // }
+                    if (((int)places[i]) >= (SINE_LENGTH/2)){
+                        sum += (0xFFF >> 2);
+                    } else {
+                        sum += 0x0;
+                    }
 
                     places[i] += frequencies[i];
 
-                    if (places[i] >= SINE_LENGTH)
+                    while(places[i] >= SINE_LENGTH)
                         places[i] -= SINE_LENGTH;
                 }
-                OCR4A = sum;
             }
-        #else
-            if (voices > 0) {
-                float freq;
-                if (polyphony_rate > 0) {
-                    if (voices > 1) {
-                        voice_place %= voices;
-                        if (place++ > (frequencies[voice_place] / polyphony_rate / CPU_PRESCALER)) {
-                            voice_place = (voice_place + 1) % voices;
-                            place = 0.0;
-                        }
-                    }
-                    #ifdef VIBRATO_ENABLE
-                    if (vibrato_strength > 0) {
-                        freq = vibrato(frequencies[voice_place]);
-                    } else {
-                    #else
-                    {
-                    #endif
-                        freq = frequencies[voice_place];
-                    }
-                } else {
-                    if (frequency != 0 && frequency < frequencies[voices - 1] && frequency < frequencies[voices - 1] * pow(2, -440/frequencies[voices - 1]/12/2)) {
-                        frequency = frequency * pow(2, 440/frequency/12/2);
-                    } else if (frequency != 0 && frequency > frequencies[voices - 1] && frequency > frequencies[voices - 1] * pow(2, 440/frequencies[voices - 1]/12/2)) {
-                        frequency = frequency * pow(2, -440/frequency/12/2);
-                    } else {
-                        frequency = frequencies[voices - 1];
-                    }
-
-
-                    #ifdef VIBRATO_ENABLE
-                    if (vibrato_strength > 0) {
-                        freq = vibrato(frequency);
-                    } else {
-                    #else
-                    {
-                    #endif
-                        freq = frequency;
-                    }
-                }
-
-                if (envelope_index < 65535) {
-                    envelope_index++;
-                }
-                freq = voice_envelope(freq);
-
-                if (freq < 30.517578125)
-                    freq = 30.52;
-                NOTE_PERIOD = (int)(((double)F_CPU) / (freq * CPU_PRESCALER)); // Set max to the period
-                NOTE_DUTY_CYCLE = (int)((((double)F_CPU) / (freq * CPU_PRESCALER)) * note_timbre); // Set compare to half the period
-            }
-        #endif
+            // OCR4A = sum;
+            writeMCP492x(sum, 0b01110000);
     }
 
     // SAMPLE
@@ -348,38 +273,13 @@ ISR(TIMER3_COMPA_vect)
 
 
     if (playing_notes) {
-        #ifdef PWM_AUDIO
-            OCR4A = pgm_read_byte(&sinewave[(uint16_t)place]) >> 0;
+        // OCR4A = pgm_read_byte(&sinewave[(uint16_t)place]) >> 0;
+        writeMCP492x(pgm_read_byte(&sinewave[(uint16_t)place]) >> 0, 0b00110000);
 
-            place += note_frequency;
-            if (place >= SINE_LENGTH)
-                place -= SINE_LENGTH;
-        #else
-            if (note_frequency > 0) {
-                float freq;
+        place += note_frequency;
+        while(place >= SINE_LENGTH)
+            place -= SINE_LENGTH;
 
-                #ifdef VIBRATO_ENABLE
-                if (vibrato_strength > 0) {
-                    freq = vibrato(note_frequency);
-                } else {
-                #else
-                {
-                #endif
-                    freq = note_frequency;
-                }
-
-                if (envelope_index < 65535) {
-                    envelope_index++;
-                }
-                freq = voice_envelope(freq);
-
-                NOTE_PERIOD = (int)(((double)F_CPU) / (freq * CPU_PRESCALER)); // Set max to the period
-                NOTE_DUTY_CYCLE = (int)((((double)F_CPU) / (freq * CPU_PRESCALER)) * note_timbre); // Set compare to half the period
-            } else {
-                NOTE_PERIOD = 0;
-                NOTE_DUTY_CYCLE = 0;
-            }
-        #endif
 
 
         note_position++;
@@ -394,12 +294,7 @@ ISR(TIMER3_COMPA_vect)
                 if (notes_repeat) {
                     current_note = 0;
                 } else {
-                    #ifdef PWM_AUDIO
-                        DISABLE_AUDIO_COUNTER_3_ISR;
-                    #else
-                        DISABLE_AUDIO_COUNTER_3_ISR;
-                        DISABLE_AUDIO_COUNTER_3_OUTPUT;
-                    #endif
+                    DISABLE_AUDIO_COUNTER_3_ISR;
                     playing_notes = false;
                     return;
                 }
@@ -411,14 +306,8 @@ ISR(TIMER3_COMPA_vect)
                 current_note--;
             } else {
                 note_resting = false;
-                #ifdef PWM_AUDIO
-                    note_frequency = (*notes_pointer)[current_note][0] / SAMPLE_RATE;
-                    note_length = (*notes_pointer)[current_note][1] * (((float)note_tempo) / 100);
-                #else
-                    envelope_index = 0;
-                    note_frequency = (*notes_pointer)[current_note][0];
-                    note_length = ((*notes_pointer)[current_note][1] / 4) * (((float)note_tempo) / 100);
-                #endif
+                note_frequency = (*notes_pointer)[current_note][0] / SAMPLE_RATE;
+                note_length = (*notes_pointer)[current_note][1] * (((float)note_tempo) / 100);
             }
             note_position = 0;
         }
@@ -448,21 +337,17 @@ void play_note(float freq, int vol) {
 
 	    envelope_index = 0;
 
-	    #ifdef PWM_AUDIO
-	        freq = freq / SAMPLE_RATE;
-	    #endif
+	    freq = freq / SAMPLE_RATE;
+
 	    if (freq > 0) {
 	        frequencies[voices] = freq;
 	        volumes[voices] = vol;
+            places[voices] = 0;
 	        voices++;
 	    }
 
-	    #ifdef PWM_AUDIO
-	        ENABLE_AUDIO_COUNTER_3_ISR;
-	    #else
-	        ENABLE_AUDIO_COUNTER_3_ISR;
-	        ENABLE_AUDIO_COUNTER_3_OUTPUT;
-	    #endif
+	   ENABLE_AUDIO_COUNTER_3_ISR;
+
 	}
 
 }
@@ -491,28 +376,15 @@ void play_notes(float (*np)[][2], uint16_t n_count, bool n_repeat, float n_rest)
 
 	    place = 0;
 	    current_note = 0;
-
-	    #ifdef PWM_AUDIO
-	        note_frequency = (*notes_pointer)[current_note][0] / SAMPLE_RATE;
-	        note_length = (*notes_pointer)[current_note][1] * (((float)note_tempo) / 100);
-	    #else
-	        note_frequency = (*notes_pointer)[current_note][0];
-	        note_length = ((*notes_pointer)[current_note][1] / 4) * (((float)note_tempo) / 100);
-	    #endif
+	    note_frequency = (*notes_pointer)[current_note][0] / SAMPLE_RATE;
+	    note_length = (*notes_pointer)[current_note][1] * (((float)note_tempo) / 100);
 	    note_position = 0;
 
-
-	    #ifdef PWM_AUDIO
-	        ENABLE_AUDIO_COUNTER_3_ISR;
-	    #else
-	        ENABLE_AUDIO_COUNTER_3_ISR;
-	        ENABLE_AUDIO_COUNTER_3_OUTPUT;
-	    #endif
+	    ENABLE_AUDIO_COUNTER_3_ISR;
 	}
 
 }
 
-#ifdef PWM_AUDIO
 void play_sample(uint8_t * s, uint16_t l, bool r) {
     if (!audio_initialized) {
         audio_init();
@@ -529,7 +401,6 @@ void play_sample(uint8_t * s, uint16_t l, bool r) {
         ENABLE_AUDIO_COUNTER_3_ISR;
     }
 }
-#endif
 
 
 void audio_toggle(void) {
