@@ -26,7 +26,7 @@ ifeq ($(strip $(MIDI_ENABLE)), yes)
 endif
 
 ifeq ($(strip $(BLUETOOTH_ENABLE)), yes)
-	LUFA_SRC += $(LUFA_DIR)/bluetooth.c \
+	LUFA_SRC += $(TMK_DIR)/protocol/lufa/bluetooth.c \
 	$(TMK_DIR)/protocol/serial_uart.c
 endif
 
