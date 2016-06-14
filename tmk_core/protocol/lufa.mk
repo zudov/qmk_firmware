@@ -1,16 +1,16 @@
-LUFA_DIR = protocol/lufa
+LUFA_DIR = lib/lufa
 
 # Path to the LUFA library
-LUFA_PATH ?= $(LUFA_DIR)/LUFA-git
+LUFA_PATH ?= $(LUFA_DIR)/LUFA
 
 
 # Create the LUFA source path variables by including the LUFA makefile
-ifneq (, $(wildcard $(TMK_PATH)/$(LUFA_PATH)/LUFA/Build/lufa_sources.mk))
+ifneq (, $(wildcard $(TOP_DIR)/$(LUFA_DIR)/LUFA/Build/lufa_sources.mk))
     # New build system from 20120730
-    LUFA_ROOT_PATH = $(LUFA_PATH)/LUFA
-    include $(TMK_PATH)/$(LUFA_PATH)/LUFA/Build/lufa_sources.mk 
+    LUFA_ROOT_PATH = $(LUFA_DIR)/LUFA
+    include $(TOP_DIR)/$(LUFA_DIR)/LUFA/Build/lufa_sources.mk
 else
-    include $(TMK_PATH)/$(LUFA_PATH)/LUFA/makefile
+    include $(TOP_DIR)/$(LUFA_PATH)/makefile
 endif
 
 LUFA_SRC = lufa.c \
@@ -33,8 +33,9 @@ endif
 SRC += $(LUFA_SRC)
 
 # Search Path
-VPATH += $(TMK_PATH)/$(LUFA_DIR)
-VPATH += $(TMK_PATH)/$(LUFA_PATH)
+VPATH += $(TOP_DIR)/$(LUFA_DIR)
+VPATH += $(TOP_DIR)/$(LUFA_PATH)
+VPATH += $(TMK_DIR)/protocol/lufa
 
 # Option modules
 #ifdef $(or MOUSEKEY_ENABLE, PS2_MOUSE_ENABLE)
